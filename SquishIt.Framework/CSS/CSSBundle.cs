@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using SquishIt.Framework.Base;
+using SquishIt.Framework.Caches;
 using SquishIt.Framework.Minifiers;
 using SquishIt.Framework.Resolvers;
 using SquishIt.Framework.Files;
@@ -11,6 +12,9 @@ using SquishIt.Framework.Utilities;
 
 namespace SquishIt.Framework.CSS
 {
+    /// <summary>
+    /// CSS Bundle implementation.
+    /// </summary>
     public class CSSBundle : BundleBase<CSSBundle>
     {
         readonly static Regex IMPORT_PATTERN = new Regex(@"@import +url\(([""']){0,1}(.*?)\1{0,1}\);", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -63,12 +67,12 @@ namespace SquishIt.Framework.CSS
         }
 
         public CSSBundle(IDebugStatusReader debugStatusReader)
-            : this(debugStatusReader, new FileWriterFactory(new RetryableFileOpener(), 5), new FileReaderFactory(new RetryableFileOpener(), 5), new DirectoryWrapper(), Configuration.Instance.DefaultHasher(), new BundleCache())
+            : this(debugStatusReader, new FileWriterFactory(new RetryableFileOpener(), 5), new FileReaderFactory(new RetryableFileOpener(), 5), new DirectoryWrapper(), Configuration.Instance.DefaultHasher(), new BundleCache(), new RawContentCache())
         {
         }
 
-        public CSSBundle(IDebugStatusReader debugStatusReader, IFileWriterFactory fileWriterFactory, IFileReaderFactory fileReaderFactory, IDirectoryWrapper directoryWrapper, IHasher hasher, IBundleCache bundleCache)
-            : base(fileWriterFactory, fileReaderFactory, debugStatusReader, directoryWrapper, hasher, bundleCache)
+        public CSSBundle(IDebugStatusReader debugStatusReader, IFileWriterFactory fileWriterFactory, IFileReaderFactory fileReaderFactory, IDirectoryWrapper directoryWrapper, IHasher hasher, IContentCache bundleCache, IContentCache rawContentCache)
+            : base(fileWriterFactory, fileReaderFactory, debugStatusReader, directoryWrapper, hasher, bundleCache, rawContentCache)
         {
         }
 
@@ -76,26 +80,32 @@ namespace SquishIt.Framework.CSS
         {
             //https://github.com/jetheredge/SquishIt/issues/215
             //if sourcePath is used below and doesn't start with a /, the path is not resolved relative to site root but relative to current folder
-            var sourcePath = "/" + (FileSystem.ResolveFileSystemPathToAppRelative(Path.GetDirectoryName(file)) + "/").TrimStart("/");
+            var sourcePath = "/" + (pathTranslator.ResolveFileSystemPathToAppRelative(Path.GetDirectoryName(file)) + "/").TrimStart("/");
 
             return IMPORT_PATTERN.Replace(css, match =>
             {
                 var importPath = match.Groups[2].Value;
                 string import;
-                import = importPath.StartsWith("/") 
-                    ? FileSystem.ResolveAppRelativePathToFileSystem(importPath) 
-                    : FileSystem.ResolveAppRelativePathToFileSystem(sourcePath + importPath);
+                import = importPath.StartsWith("/")
+                    ? pathTranslator.ResolveAppRelativePathToFileSystem(importPath)
+                    : pathTranslator.ResolveAppRelativePathToFileSystem(sourcePath + importPath);
                 bundleState.DependentFiles.Add(import);
-                return ProcessCssFile(import, outputFile, file, true);
+                return ProcessCssFile(import, outputFile, import, true);
             });
         }
 
+        /// <summary>
+        /// Configure bundle to process CSS imports.
+        /// </summary>
         public CSSBundle ProcessImports()
         {
             ShouldImport = true;
             return this;
         }
 
+        /// <summary>
+        /// Configure bundle to append versioning hash to asset reference URLs.
+        /// </summary>
         public CSSBundle AppendHashForAssets()
         {
             ShouldAppendHashForAssets = true;
@@ -119,7 +129,7 @@ namespace SquishIt.Framework.CSS
         protected override string ProcessFile(string file, string outputFile, Asset originalAsset)
         {
             var sourcePath = file;
-            var pathForRewriter = originalAsset.IsEmbeddedResource ? FileSystem.ResolveAppRelativePathToFileSystem(originalAsset.LocalPath) : file;
+            var pathForRewriter = originalAsset.IsEmbeddedResource ? pathTranslator.ResolveAppRelativePathToFileSystem(originalAsset.LocalPath) : file;
             return MinifyIfNeeded(ProcessCssFile(sourcePath, outputFile, pathForRewriter), originalAsset.Minify);
         }
 
@@ -141,10 +151,10 @@ namespace SquishIt.Framework.CSS
             if(ShouldAppendHashForAssets)
             {
                 var fileResolver = new FileSystemResolver();
-                fileHasher = new CSSAssetsFileHasher(bundleState.HashKeyName, fileResolver, hasher);
+                fileHasher = new CSSAssetsFileHasher(bundleState.HashKeyName, fileResolver, hasher, pathTranslator);
             }
 
-            return CSSPathRewriter.RewriteCssPaths(outputFile, fileForCssRewriter, css, fileHasher, asImport);
+            return CSSPathRewriter.RewriteCssPaths(outputFile, fileForCssRewriter, css, fileHasher, pathTranslator, asImport: asImport);
         }
     }
 }

@@ -6,7 +6,6 @@ using System.Text;
 using System.Web;
 using SquishIt.Framework.Files;
 using SquishIt.Framework.Renderers;
-using SquishIt.Framework.Resolvers;
 using SquishIt.Framework.Utilities;
 
 namespace SquishIt.Framework.Base
@@ -15,7 +14,7 @@ namespace SquishIt.Framework.Base
     {
         IEnumerable<string> GetFiles(IEnumerable<Asset> assets)
         {
-            var inputFiles = GetInputFiles(assets);
+            var inputFiles = assets.Select(a => Input.FromAsset(a, pathTranslator, IsDebuggingEnabled));
             var resolvedFilePaths = new List<string>();
 
             foreach (Input input in inputFiles)
@@ -28,48 +27,8 @@ namespace SquishIt.Framework.Base
 
         protected IEnumerable<string> GetFilesForSingleAsset(Asset asset)
         {
-            var inputFile = GetInputFile(asset);
+            var inputFile = Input.FromAsset(asset, pathTranslator, IsDebuggingEnabled);
             return inputFile.Resolve(allowedExtensions, disallowedExtensions, debugExtension);
-        }
-
-        Input GetInputFile(Asset asset)
-        {
-            if (!asset.IsEmbeddedResource)
-            {
-                if (IsDebuggingEnabled())
-                {
-                    return GetFileSystemPath(asset.LocalPath, asset.IsRecursive);
-                }
-                if (asset.IsRemoteDownload)
-                {
-                    return GetHttpPath(asset.RemotePath);
-                }
-                return GetFileSystemPath(asset.LocalPath, asset.IsRecursive);
-            }
-            return GetEmbeddedResourcePath(asset.RemotePath, asset.IsEmbeddedInRootNamespace);
-        }
-
-        IEnumerable<Input> GetInputFiles(IEnumerable<Asset> assets)
-        {
-            return assets.Select(GetInputFile).ToList();
-        }
-
-        Input GetFileSystemPath(string localPath, bool isRecursive = true)
-        {
-            string mappedPath = FileSystem.ResolveAppRelativePathToFileSystem(localPath);
-            return new Input(mappedPath, isRecursive, ResolverFactory.Get<FileSystemResolver>());
-        }
-
-        Input GetHttpPath(string remotePath)
-        {
-            return new Input(remotePath, false, ResolverFactory.Get<HttpResolver>());
-        }
-
-        Input GetEmbeddedResourcePath(string resourcePath, bool isInRootNamespace)
-        {
-            return isInRootNamespace
-                ? new Input(resourcePath, false, ResolverFactory.Get<RootEmbeddedResourceResolver>())
-                : new Input(resourcePath, false, ResolverFactory.Get<StandardEmbeddedResourceResolver>());
         }
 
         protected IPreprocessor[] FindPreprocessors(string file)
@@ -79,7 +38,8 @@ namespace SquishIt.Framework.Base
                 .Skip(1)
                 .Reverse()
                 .Select(FindPreprocessor)
-                .Where(p => p != null)
+                .TakeWhile(p => p != null)
+                .Where(p => !(p is NullPreprocessor))
                 .ToArray();
         }
 
@@ -116,9 +76,11 @@ namespace SquishIt.Framework.Base
         {
             var instanceTypes = bundleState.Preprocessors.Select(ipp => ipp.GetType()).ToArray();
 
-            return Bundle.Preprocessors.Where(pp => !instanceTypes.Contains(pp.GetType()))
-                .Union(bundleState.Preprocessors)
+            var preprocessor = 
+                bundleState.Preprocessors.Union(Bundle.Preprocessors.Where(pp => !instanceTypes.Contains(pp.GetType())))
                 .FirstOrDefault(p => p.ValidFor(extension));
+
+            return preprocessor;
         }
 
         string ExpandAppRelativePath(string file)
@@ -229,7 +191,7 @@ namespace SquishIt.Framework.Base
                 }
                 else
                 {
-                    var inputFile = GetInputFile(asset);
+                    var inputFile = Input.FromAsset(asset, pathTranslator, IsDebuggingEnabled);
                     var files = inputFile.Resolve(allowedExtensions, disallowedExtensions, debugExtension);
 
                     if (asset.IsEmbeddedResource)
@@ -243,7 +205,7 @@ namespace SquishIt.Framework.Base
 
                         var processedFile = ExpandAppRelativePath(asset.LocalPath);
                         //embedded resources need to be rendered regardless to be usable
-                        renderer.Render(tsb.ToString(), FileSystem.ResolveAppRelativePathToFileSystem(processedFile));
+                        renderer.Render(tsb.ToString(), pathTranslator.ResolveAppRelativePathToFileSystem(processedFile));
                         sb.AppendLine(FillTemplate(bundleState, processedFile));
                     }
                     else if (asset.RemotePath != null)
@@ -256,7 +218,7 @@ namespace SquishIt.Framework.Base
                         {
                             if (!renderedFiles.Contains(file))
                             {
-                                var fileBase = FileSystem.ResolveAppRelativePathToFileSystem(asset.LocalPath);
+                                var fileBase = pathTranslator.ResolveAppRelativePathToFileSystem(asset.LocalPath);
                                 var newPath = PreprocessForDebugging(file).Replace(fileBase, "");
                                 var path = ExpandAppRelativePath(asset.LocalPath + newPath.Replace("\\", "/"));
                                 sb.AppendLine(FillTemplate(bundleState, path));
@@ -275,7 +237,7 @@ namespace SquishIt.Framework.Base
             }
             if (debugStatusReader.IsDebuggingEnabled()) //default for predicate is null - only want to add to cache if not forced via predicate
             {
-                bundleCache.Add(name, content, bundleState.DependentFiles);
+                bundleCache.Add(name, content, bundleState.DependentFiles, IsDebuggingEnabled());
             }
 
             //need to render the bundle to caches, otherwise leave it
@@ -318,7 +280,7 @@ namespace SquishIt.Framework.Base
                             renderPathCache[CachePrefix + "." + key] = renderTo;
                         }
 
-                        var outputFile = FileSystem.ResolveAppRelativePathToFileSystem(renderTo);
+                        var outputFile = pathTranslator.ResolveAppRelativePathToFileSystem(renderTo);
                         var renderToPath = ExpandAppRelativePath(renderTo);
 
                         if (!String.IsNullOrEmpty(BaseOutputHref))
@@ -362,7 +324,7 @@ namespace SquishIt.Framework.Base
                 //don't cache bundles where debugging was forced via predicate
                 if (!bundleState.DebugPredicate.SafeExecute())
                 {
-                    bundleCache.Add(key, content, bundleState.DependentFiles);
+                    bundleCache.Add(key, content, bundleState.DependentFiles, IsDebuggingEnabled());
                 }
             }
 
@@ -387,7 +349,7 @@ namespace SquishIt.Framework.Base
 
         protected string MinifyIfNeeded(string content, bool minify)
         {
-            if (minify && !string.IsNullOrEmpty(content))
+            if (minify && !string.IsNullOrEmpty(content) && !IsDebuggingEnabled())
             {
                 var minified = Minifier.Minify(content);
                 return AppendFileClosure(minified);

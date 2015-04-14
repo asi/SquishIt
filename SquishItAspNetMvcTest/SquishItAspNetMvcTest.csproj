@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -15,6 +16,15 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <MvcBuildViews>false</MvcBuildViews>
     <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <MvcProjectUpgradeChecked>true</MvcProjectUpgradeChecked>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>4.0</OldToolsVersion>
+    <UpgradeBackupLocation />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -35,16 +45,42 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.Web.Mvc, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
-    <Reference Include="System.Web.WebPages, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Web" />
-    <Reference Include="System.Web.Abstractions" />
+    <Reference Include="System.Web.Helpers, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.2.0.20710.0\lib\net40\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=4.0.0.1, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.4.0.40804.0\lib\net40\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.Razor.2.0.20710.0\lib\net40\System.Web.Razor.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web.Routing" />
+    <Reference Include="System.Web.WebPages, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.2.0.20710.0\lib\net40\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.2.0.20710.0\lib\net40\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controllers\AssetHashingController.cs" />
+    <Compile Include="Controllers\AutoBundlingController.cs" />
     <Compile Include="Controllers\DebuggingBehaviorController.cs" />
     <Compile Include="Controllers\FeaturesController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
@@ -58,6 +94,8 @@
     <Content Include="assets\js\minifyjs_test.js" />
     <None Include="assets\styles\dynamic_import_test1.less" />
     <None Include="assets\styles\import_subfolder\dynamic_import_test2.less" />
+    <Content Include="assets\styles\backgroundimage-local-relative.css" />
+    <Content Include="assets\styles\backgroundimage-root-relative.css" />
     <Content Include="assets\styles\processedimport_test1.css" />
     <Content Include="assets\styles\folder_test\folder_test1.css" />
     <Content Include="assets\styles\folder_test\subfolder\folder_test2.css" />
@@ -67,12 +105,17 @@
     <Content Include="assets\styles\lesstest.less.css" />
     <Content Include="assets\styles\minifycss_test2.css" />
     <Content Include="assets\styles\minifycss_test1.css" />
-    <None Include="assets\styles\sasstest.scss" />
-    <None Include="assets\styles\sasstest.sass" />
+    <None Include="assets\styles\sass-import\_sasstest.sass" />
+    <None Include="assets\styles\sass-import\_sasstest.scss" />
+    <None Include="assets\styles\sass\nsasstest.scss" />
+    <None Include="assets\styles\sass\sasstest.scss" />
+    <None Include="assets\styles\sass\sasstest.sass" />
     <EmbeddedResource Include="EmbeddedResource\Embedded.css" />
     <EmbeddedResource Include="EmbeddedResource\Embedded.js" />
     <Content Include="assets\templates\hogan\template2.hogan.html" />
     <Content Include="assets\templates\hogan\lambda.hogan.html" />
+    <Content Include="assets\styles\Common\Css\Site.css" />
+    <Content Include="assets\styles\import-font.css" />
     <Content Include="Global.asax" />
     <Content Include="assets\js\hogan\hogan-2.0.0.js" />
     <Content Include="assets\js\jquery_1.7.2.js" />
@@ -103,6 +146,21 @@
     <Content Include="Views\Features\HashInFileName.cshtml" />
     <Content Include="Views\Features\HashAsVirtualDirectory.cshtml" />
     <Content Include="Views\Preprocessors\ArbitraryContentWithImports.cshtml" />
+    <Content Include="Views\AutoBundling\Javascript.cshtml" />
+    <Content Include="packages.config" />
+    <Content Include="Views\AutoBundling\Css.cshtml" />
+    <Content Include="Views\AutoBundling\Sass.cshtml" />
+    <Content Include="Views\AutoBundling\Coffee.cshtml" />
+    <Content Include="Views\AutoBundling\Hogan.cshtml" />
+    <Content Include="Views\AutoBundling\Less.cshtml" />
+    <Content Include="Views\AutoBundling\Combined.cshtml" />
+    <Content Include="Views\Preprocessors\NSass.cshtml" />
+    <None Include="assets\styles\Common\Fonts\pts55f-webfont.eot" />
+    <None Include="assets\styles\Common\Fonts\pts55f-webfont.woff" />
+    <Content Include="Views\AssetHashing\LocalRelative.cshtml" />
+    <Content Include="Views\AssetHashing\RootRelative.cshtml" />
+    <Content Include="Views\Features\MinifyCssYUI.cshtml" />
+    <Content Include="Views\Features\MinifyJsYUI.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\Preprocessors\Hogan.cshtml" />
@@ -139,6 +197,10 @@
       <Project>{A9F9331C-C3AA-4844-AB33-7714761F725D}</Project>
       <Name>SquishIt.Mvc</Name>
     </ProjectReference>
+    <ProjectReference Include="..\SquishIt.NSass\SquishIt.NSass.csproj">
+      <Project>{8D1EE11A-C71D-453D-B0BC-0A76C20B010E}</Project>
+      <Name>SquishIt.NSass</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SquishIt.Sass\SquishIt.Sass.csproj">
       <Project>{EC304F39-5916-45ED-A289-ABEFF1EDD070}</Project>
       <Name>SquishIt.Sass</Name>
@@ -151,10 +213,16 @@
     <Content Include="Views\Preprocessors\Sass.cshtml" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="assets\img\" />
     <Folder Include="output\" />
   </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -1032,6 +1032,47 @@ namespace SquishIt.Tests
         }
 
         [Test]
+        public void CanBundleJavaScriptWithDeferredLoadLast()
+        {
+            var tag = javaScriptBundleFactory
+                    .Create()
+                    .WithAsyncLoad()
+                    .WithDeferredLoad()
+                    .Add("~/js/test.js")
+                    .Render("~/js/output_1.js");
+
+            Assert.AreEqual("<script type=\"text/javascript\" src=\"js/output_1.js?r=hash\" defer></script>", tag);
+            Assert.AreEqual(minifiedJavaScript, javaScriptBundleFactory.FileWriterFactory.Files[TestUtilities.PrepareRelativePath(@"js\output_1.js")]);
+        }
+
+        [Test]
+        public void CanBundleJavaScriptWithAsyncLoad()
+        {
+            var tag = javaScriptBundleFactory
+                    .Create()
+                    .WithAsyncLoad()
+                    .Add("~/js/test.js")
+                    .Render("~/js/output_1.js");
+
+            Assert.AreEqual("<script type=\"text/javascript\" src=\"js/output_1.js?r=hash\" async></script>", tag);
+            Assert.AreEqual(minifiedJavaScript, javaScriptBundleFactory.FileWriterFactory.Files[TestUtilities.PrepareRelativePath(@"js\output_1.js")]);
+        }
+
+        [Test]
+        public void CanBundleJavaScriptWithAsyncLoadLast()
+        {
+            var tag = javaScriptBundleFactory
+                    .Create()
+                    .WithDeferredLoad()
+                    .WithAsyncLoad()
+                    .Add("~/js/test.js")
+                    .Render("~/js/output_1.js");
+
+            Assert.AreEqual("<script type=\"text/javascript\" src=\"js/output_1.js?r=hash\" async></script>", tag);
+            Assert.AreEqual(minifiedJavaScript, javaScriptBundleFactory.FileWriterFactory.Files[TestUtilities.PrepareRelativePath(@"js\output_1.js")]);
+        }
+
+        [Test]
         public void CanUseArbitraryReleaseFileRenderer()
         {
             var renderer = new Mock<IRenderer>();
@@ -1398,6 +1439,36 @@ namespace SquishIt.Tests
 
             var minifiedScript = "first;\nsecond;\n";
             Assert.AreEqual(minifiedScript, writerFactory.Files[TestUtilities.PrepareRelativePath(@"output.js")]);
+        }
+
+        [Test]
+        public void CanRenderContentOnly_Release()
+        {
+            var javaScriptBundle = javaScriptBundleFactory
+                .Create();
+
+            var content = javaScriptBundle
+                    .Add("~/js/test.js").RenderRawContent("testrelease");
+
+            Assert.AreEqual(minifiedJavaScript, content);
+
+
+            Assert.AreEqual(content, javaScriptBundleFactory.Create().RenderCachedRawContent("testrelease"));
+        }
+
+        [Test]
+        public void CanRenderContentOnly_Debug()
+        {
+            var javaScriptBundle = javaScriptBundleFactory
+                .WithDebuggingEnabled(true)
+                .Create();
+
+            var content = javaScriptBundle
+                    .Add("~/js/test.js").RenderRawContent("testdebug");
+
+            Assert.AreEqual(javaScript + ";\n", content);
+
+            Assert.AreEqual(content, javaScriptBundleFactory.Create().RenderCachedRawContent("testdebug"));
         }
     }
 }

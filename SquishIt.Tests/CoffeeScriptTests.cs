@@ -1,6 +1,5 @@
 ﻿using System;
 using NUnit.Framework;
-using SquishIt.CoffeeScript.Coffee;
 using SquishIt.Framework;
 using SquishIt.Tests.Helpers;
 
@@ -9,7 +8,6 @@ namespace SquishIt.Tests
     [TestFixture]
     public class CoffeeScriptTests
     {
-        //TODO: should probably have more tests here
         JavaScriptBundleFactory javaScriptBundleFactory;
 
         [SetUp]
@@ -56,7 +54,7 @@ namespace SquishIt.Tests
                 .AddString(coffee, ".coffee")
                 .Render("~/brewed.js");
 
-            Assert.AreEqual("<script type=\"text/javascript\">(function() {\n\n  alert('test');\n\n}).call(this);\n</script>\n", TestUtilities.NormalizeLineEndings(tag));
+            Assert.AreEqual("<script type=\"text/javascript\">(function() {\n  alert('test');\n\n}).call(this);\n</script>\n", TestUtilities.NormalizeLineEndings(tag));
         }
     }
 }

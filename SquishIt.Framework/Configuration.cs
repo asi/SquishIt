@@ -15,15 +15,23 @@ namespace SquishIt.Framework
 {
     public class Configuration
     {
-        static Configuration instance;
-        IMinifier<CSSBundle> _defaultCssMinifier = new MsMinifier();
-        IMinifier<JavaScriptBundle> _defaultJsMinifier = new Minifiers.JavaScript.MsMinifier();
-        ICacheInvalidationStrategy _defaultCacheInvalidationStrategy = new DefaultCacheInvalidationStrategy();
-        string _defaultHashKeyName = "r";
-        string _defaultOutputBaseHref;
-        IRenderer _defaultReleaseRenderer;
-        Func<bool> _defaultDebugPredicate;
-        IHasher _defaultHasher = new Hasher(new RetryableFileOpener());
+        private static Configuration instance;
+        private ICacheInvalidationStrategy _defaultCacheInvalidationStrategy = new DefaultCacheInvalidationStrategy();
+        private IMinifier<CSSBundle> _defaultCssMinifier = new MsMinifier();
+        private Func<bool> _defaultDebugPredicate;
+        private string _defaultHashKeyName = "r";
+        private IHasher _defaultHasher = new Hasher(new RetryableFileOpener());
+        private IMinifier<JavaScriptBundle> _defaultJsMinifier = new Minifiers.JavaScript.MsMinifier();
+        private string _defaultOutputBaseHref;
+        private IPathTranslator _defaultPathTranslator = new PathTranslator();
+        private IRenderer _defaultReleaseRenderer;
+        private ITempPathProvider _defaultTempPathProvider = new TempPathProvider();
+
+        public Configuration()
+        {
+            JavascriptMimeType = "application/javascript";
+            CssMimeType = "text/css";
+        }
 
         public static Configuration Instance
         {
@@ -31,11 +39,16 @@ namespace SquishIt.Framework
             internal set { instance = value; }
         }
 
-        public Configuration()
-        {
-            JavascriptMimeType = "application/javascript";
-            CssMimeType = "text/css";
-        }
+        /// <summary>
+        ///     Mime-type used to serve Javascript content. Defaults to "application/javascript".
+        ///     To enable gzip compression in IIS change this to "application/x-javascript".
+        /// </summary>
+        public string JavascriptMimeType { get; set; }
+
+        /// <summary>
+        ///     Mime-type used to serve CSS content. Defaults to "text/css".
+        /// </summary>
+        public string CssMimeType { get; set; }
 
         public Configuration UseMinifierForCss<TMinifier>()
             where TMinifier : IMinifier<CSSBundle>
@@ -70,7 +83,7 @@ namespace SquishIt.Framework
                 throw new InvalidCastException(
                     String.Format("Type '{0}' must implement '{1}' to be used for Javascript minification.",
                                   minifierType, typeof (IMinifier<JavaScriptBundle>)));
-            return UseMinifierForJs((IMinifier<JavaScriptBundle>)Activator.CreateInstance(minifierType, true));
+            return UseMinifierForJs((IMinifier<JavaScriptBundle>) Activator.CreateInstance(minifierType, true));
         }
 
         public Configuration UseMinifierForJs(IMinifier<JavaScriptBundle> minifier)
@@ -80,7 +93,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Yahoo YUI Compressor for CSS minification by default.
+        ///     Use Yahoo YUI Compressor for CSS minification by default.
         /// </summary>
         public Configuration UseYuiForCssMinification()
         {
@@ -88,7 +101,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Microsoft Ajax Minifier for CSS minification by default.
+        ///     Use Microsoft Ajax Minifier for CSS minification by default.
         /// </summary>
         public Configuration UseMsAjaxForCssMinification()
         {
@@ -96,7 +109,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// By default, perform no minification of CSS.
+        ///     By default, perform no minification of CSS.
         /// </summary>
         public Configuration UseNoCssMinification()
         {
@@ -104,7 +117,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Microsoft Ajax Minifier for Javascript minification by default.
+        ///     Use Microsoft Ajax Minifier for Javascript minification by default.
         /// </summary>
         public Configuration UseMsAjaxForJsMinification()
         {
@@ -112,7 +125,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Yahoo YUI Compressor for Javascript minification by default.
+        ///     Use Yahoo YUI Compressor for Javascript minification by default.
         /// </summary>
         public Configuration UseYuiForJsMinification()
         {
@@ -120,7 +133,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Google Closure for Javascript minification by default.
+        ///     Use Google Closure for Javascript minification by default.
         /// </summary>
         public Configuration UseClosureForMinification()
         {
@@ -128,7 +141,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// By default, perform no minification of Javascript.
+        ///     By default, perform no minification of Javascript.
         /// </summary>
         public Configuration UseNoJsMinification()
         {
@@ -136,7 +149,7 @@ namespace SquishIt.Framework
         }
 
         /// <summary>
-        /// Use Douglas Crockford's JsMin for Javascript minification by default.
+        ///     Use Douglas Crockford's JsMin for Javascript minification by default.
         /// </summary>
         public Configuration UseJsMinForJsMinification()
         {
@@ -192,15 +205,10 @@ namespace SquishIt.Framework
             return this;
         }
 
-        /// <summary>
-        /// Mime-type used to serve Javascript content. Defaults to "application/javascript".
-        /// To enable gzip compression in IIS change this to "application/x-javascript".
-        /// </summary>
-        public string JavascriptMimeType { get; set; }
-        /// <summary>
-        /// Mime-type used to serve CSS content. Defaults to "text/css".
-        /// </summary>
-        public string CssMimeType { get; set; }
+        public Configuration UseSHA1Hasher()
+        {
+            return UseHasher(new SHA1Hasher(new RetryableFileOpener()));
+        }
 
         internal IHasher DefaultHasher()
         {
@@ -232,6 +240,28 @@ namespace SquishIt.Framework
         public string DefaultHashKeyName()
         {
             return _defaultHashKeyName;
+        }
+
+        public Configuration UsePathTranslator(IPathTranslator translator)
+        {
+            _defaultPathTranslator = translator;
+            return this;
+        }
+
+        public IPathTranslator DefaultPathTranslator()
+        {
+            return _defaultPathTranslator;
+        }
+
+        public Configuration UseTempPathProvider(ITempPathProvider provider)
+        {
+            _defaultTempPathProvider = provider;
+            return this;
+        }
+
+        public ITempPathProvider DefaultTempPathProvider()
+        {
+            return _defaultTempPathProvider;
         }
     }
 }

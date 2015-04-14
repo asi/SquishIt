@@ -45,6 +45,7 @@ namespace SquishItAspNetMvcTest
             Bundle.RegisterScriptPreprocessor(new CoffeeScriptPreprocessor());
 
             Bundle.RegisterStylePreprocessor(new LessPreprocessor());
+
             Bundle.RegisterStylePreprocessor(new SassPreprocessor());
 
             Bundle.JavaScript()

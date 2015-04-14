@@ -8,6 +8,9 @@ using SquishIt.MsIeHogan.Hogan;
 
 namespace SquishIt.MsIeHogan
 {
+    /// <summary>
+    /// Hogan template preprocessor that uses IE's chakra JavaScript engine.
+    /// </summary>
     public class HoganPreprocessor : Preprocessor
     {
         public override string[] Extensions
@@ -15,7 +18,12 @@ namespace SquishIt.MsIeHogan
             get { return new[] { ".hogan" }; }
         }
 
-		public override IProcessResult Process(string filePath, string content)
+        public override string[] IgnoreExtensions
+        {
+            get { return new [] { ".html" }; }
+        }
+
+        public override IProcessResult Process(string filePath, string content)
         {
             var compiler = new HoganCompiler();
             string renderFunc = compiler.Compile(content);

@@ -2,20 +2,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using SquishIt.Framework.Base;
+using SquishIt.Framework.Caches;
 using SquishIt.Framework.Files;
 using SquishIt.Framework.Minifiers;
 using SquishIt.Framework.Utilities;
 
 namespace SquishIt.Framework.JavaScript
 {
+    /// <summary>
+    /// JavaScript bundle implementation.
+    /// </summary>
     public class JavaScriptBundle : BundleBase<JavaScriptBundle>
     {
-        const string JS_TEMPLATE = "<script type=\"text/javascript\" {0}src=\"{1}\" defer></script>";
+        const string JS_TEMPLATE = "<script type=\"text/javascript\" {0}src=\"{1}\" defer async></script>";
         const string TAG_FORMAT = "<script type=\"text/javascript\">{0}</script>";
 
         const string CACHE_PREFIX = "js";
 
         bool deferred;
+        bool async;
 
         protected override IMinifier<JavaScriptBundle> DefaultMinifier
         {
@@ -46,17 +51,18 @@ namespace SquishIt.Framework.JavaScript
             : this(new DebugStatusReader()) { }
 
         public JavaScriptBundle(IDebugStatusReader debugStatusReader)
-            : this(debugStatusReader, new FileWriterFactory(new RetryableFileOpener(), 5), new FileReaderFactory(new RetryableFileOpener(), 5), new DirectoryWrapper(), Configuration.Instance.DefaultHasher(), new BundleCache()) { }
+            : this(debugStatusReader, new FileWriterFactory(new RetryableFileOpener(), 5), new FileReaderFactory(new RetryableFileOpener(), 5), new DirectoryWrapper(), Configuration.Instance.DefaultHasher(), new BundleCache(), new RawContentCache()) { }
 
-        public JavaScriptBundle(IDebugStatusReader debugStatusReader, IFileWriterFactory fileWriterFactory, IFileReaderFactory fileReaderFactory, IDirectoryWrapper directoryWrapper, IHasher hasher, IBundleCache bundleCache) :
-            base(fileWriterFactory, fileReaderFactory, debugStatusReader, directoryWrapper, hasher, bundleCache) { }
+        public JavaScriptBundle(IDebugStatusReader debugStatusReader, IFileWriterFactory fileWriterFactory, IFileReaderFactory fileReaderFactory, IDirectoryWrapper directoryWrapper, IHasher hasher, IContentCache bundleCache, IContentCache rawContentCache) :
+            base(fileWriterFactory, fileReaderFactory, debugStatusReader, directoryWrapper, hasher, bundleCache, rawContentCache) { }
 
         protected override string Template
         {
             get
             {
                 var val = bundleState.Typeless ? JS_TEMPLATE.Replace("type=\"text/javascript\" ", "") : JS_TEMPLATE;
-                return deferred ? val : val.Replace(" defer", "");
+
+                return deferred ? val.Replace(" async", "") : async ? val.Replace(" defer", "") : val.Replace(" defer", "").Replace(" async", "");
             }
         }
 
@@ -68,8 +74,8 @@ namespace SquishIt.Framework.JavaScript
         protected override string ProcessFile(string file, string outputFile, Asset originalAsset)
         {
             var preprocessors = FindPreprocessors(file);
-            return MinifyIfNeeded(preprocessors.NullSafeAny() 
-                ? PreprocessFile(file, preprocessors) 
+            return MinifyIfNeeded(preprocessors.NullSafeAny()
+                ? PreprocessFile(file, preprocessors)
                 : ReadFile(file), originalAsset.Minify);
         }
 
@@ -88,15 +94,29 @@ namespace SquishIt.Framework.JavaScript
         }
 
         const string MINIFIED_FILE_SEPARATOR = ";\n";
-        
+
         protected override string AppendFileClosure(string content)
         {
             return content.TrimEnd(MINIFIED_FILE_SEPARATOR).TrimEnd(";") + MINIFIED_FILE_SEPARATOR;
         }
 
+        /// <summary>
+        /// Configure bundle to render with "deferred" attribute (script only).
+        /// </summary>
         public JavaScriptBundle WithDeferredLoad()
         {
             deferred = true;
+            async = false;
+            return this;
+        }
+
+        /// <summary>
+        /// Configure bundle to render with "async" attribute (script only).
+        /// </summary>
+        public JavaScriptBundle WithAsyncLoad()
+        {
+            async = true;
+            deferred = false;
             return this;
         }
     }

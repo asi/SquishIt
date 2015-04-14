@@ -521,10 +521,10 @@ background:url(images/button-loader.gif) #ccc;
                 .WithPreprocessor(new StubStylePreprocessor())
                 .Add("~/first.style.css")
                 .Render("/css/output.css");
-
+            
             Assert.AreEqual("<link rel=\"stylesheet\" type=\"text/css\" href=\"first.style.css.squishit.debug.css\" />\n", TestUtilities.NormalizeLineEndings(tag));
         }
-
+        
         [Test]
         public void CanRenderDebugTagsTwice()
         {
@@ -1074,12 +1074,12 @@ background:url(images/button-loader.gif) #ccc;
         {
             var path = Guid.NewGuid().ToString();
             var file1 = TestUtilities.PrepareRelativePath(path + "\\file1.style.css");
-            var file2 = TestUtilities.PrepareRelativePath(path + "\\file1.style.css.squishit.debug.css");
+            var file2 = TestUtilities.PrepareRelativePath(path + "\\file1.style.squishit.debug.css");
             var content = "some stuffs";
 
             var preprocessor = new StubStylePreprocessor();
 
-            using(new ScriptPreprocessorScope<StubStylePreprocessor>(preprocessor))
+            using(new StylePreprocessorScope<StubStylePreprocessor>(preprocessor))
             using(new ResolverFactoryScope(typeof(FileSystemResolver).FullName, StubResolver.ForDirectory(new[] { file1, file2 })))
             {
                 var frf = new StubFileReaderFactory();
@@ -1691,6 +1691,36 @@ background:url(images/button-loader.gif) #ccc;
 
                 Assert.AreEqual(expectedTag, TestUtilities.NormalizeLineEndings(tag));
             }
+        }
+
+        [Test]
+        public void CanRenderRawContent_Release()
+        {
+            CSSBundle cssBundle = cssBundleFactory
+                .WithDebuggingEnabled(false)
+                .WithContents(css)
+                .Create();
+
+            var contents = cssBundle.Add("~/test/sample.js").RenderRawContent("testrelease");
+
+            Assert.AreEqual(minifiedCss, contents);
+
+            Assert.AreEqual(contents, cssBundleFactory.Create().RenderCachedRawContent("testrelease"));
+        }
+
+        [Test]
+        public void CanRenderRawContent_Debug()
+        {
+            CSSBundle cssBundle = cssBundleFactory
+                .WithDebuggingEnabled(true)
+                .WithContents(css)
+                .Create();
+
+            var contents = cssBundle.Add("~/test/sample.js").RenderRawContent("testdebug");
+
+            Assert.AreEqual(css, contents);
+
+            Assert.AreEqual(contents, cssBundleFactory.Create().RenderCachedRawContent("testdebug"));
         }
     }
 }

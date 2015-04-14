@@ -1,4 +1,5 @@
 ﻿@using SquishIt.Framework
+@using SquishIt.Sass
 @{
     ViewBag.Title = "Sass";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -7,13 +8,16 @@
 <div id="test-container">
     <p class="red-text">This text should be red if sass was processed.</p>
     <p class="blue-text">This text should be blue if scss was processed.</p>
+    <p class="red-import-text">This text should be red if sass import was processed.</p>
+    <p class="blue-import-text">This text should be blue if scss import was processed.</p>
 </div>
 
 @section Styles{
     @MvcHtmlString.Create(
         Bundle.Css()
-            .Add("/assets/styles/sasstest.sass")
-            .Add("/assets/styles/sasstest.scss")
+            .WithPreprocessor(new SassPreprocessor())
+            .Add("/assets/styles/sass/sasstest.sass")
+            .Add("/assets/styles/sass/sasstest.scss")
             .ForceRelease()
             .Render("/output/sasstest.css"))
 }
